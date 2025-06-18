@@ -1,0 +1,5 @@
+dash
+pandas
+gunicorn
+# If you used plotly.express explicitly in your app:
+plotly
