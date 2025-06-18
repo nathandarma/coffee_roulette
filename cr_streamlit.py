@@ -127,10 +127,13 @@ if not st.session_state["password_entered"]:
     if password_input == PASSWORD:
         st.session_state["password_entered"] = True
         st.success("Access Granted!")
-        st.rerun() # Rerun to hide password input
+        # No st.rerun() here. Let the script continue to the main app if password is correct.
     elif password_input: # Only show error if something was typed
         st.error("Incorrect Password. Please try again.")
-    st.stop() # Stop execution until password is correct
+    
+    # Only stop if the password is NOT yet entered or incorrect
+    if not st.session_state["password_entered"]:
+        st.stop() 
 
 # --- Main Application Logic ---
 
@@ -204,14 +207,13 @@ if df is not None and not df.empty:
             st.subheader(f"Current Coffee Roulette Groups ({next_group_col}):")
             
             # Visual presentation of groups
-            # Using st.expander for a "bubble" like visual effect
+            # Using a custom markdown container for visual separation and "bubble" effect
             unique_new_groups = df[next_group_col].dropna().unique()
             for group_id in sorted(unique_new_groups):
                 group_members_df = df[df[next_group_col] == group_id]
                 members = group_members_df['Name'].tolist()
                 branches = group_members_df['Branch'].tolist()
 
-                # Using a simple markdown container for visual separation
                 st.markdown(
                     f"""
                     <div style="
