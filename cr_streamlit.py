@@ -118,25 +118,25 @@ st.set_page_config(page_title="Coffee Roulette", layout="centered")
 
 st.title("☕ Coffee Roulette Organizer")
 
-# --- Password Authentication ---
+# Initialize password state
 if "password_entered" not in st.session_state:
     st.session_state["password_entered"] = False
 
+# Password authentication block
 if not st.session_state["password_entered"]:
-    password_input = st.text_input("Enter Password", type="password")
+    password_input = st.text_input("Enter Password", type="password", key="password_input")
     if password_input == PASSWORD:
         st.session_state["password_entered"] = True
         st.success("Access Granted!")
-        # No st.rerun() here. Let the script continue to the main app if password is correct.
-    elif password_input: # Only show error if something was typed
+        st.experimental_rerun() # Use rerun to clear the password input and re-render
+    elif password_input:
         st.error("Incorrect Password. Please try again.")
-    
-    # Only stop if the password is NOT yet entered or incorrect
-    if not st.session_state["password_entered"]:
-        st.stop() 
+    # Stop execution if password is not yet entered or incorrect
+    st.stop()
 
-# --- Main Application Logic ---
 
+# --- Main Application Logic (only runs if password_entered is True) ---
+# This entire block will only execute if the password has been successfully entered.
 st.markdown("""
 Welcome to the Coffee Roulette Organizer!
 Upload a CSV file with 'Name' and 'Branch' columns to generate random coffee groups.
