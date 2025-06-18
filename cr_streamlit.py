@@ -128,119 +128,126 @@ if not st.session_state["password_entered"]:
     if password_input == PASSWORD:
         st.session_state["password_entered"] = True
         st.success("Access Granted!")
-        st.experimental_rerun() # Use rerun to clear the password input and re-render
+        # No st.experimental_rerun() here. Let Streamlit naturally re-run.
     elif password_input:
         st.error("Incorrect Password. Please try again.")
-    # Stop execution if password is not yet entered or incorrect
-    st.stop()
+    
+    # Only stop execution if password is not yet entered or incorrect.
+    # If password_entered is True, then this st.stop() will not be reached,
+    # and the rest of the script will execute.
+    if not st.session_state["password_entered"]:
+        st.stop()
 
 
 # --- Main Application Logic (only runs if password_entered is True) ---
 # This entire block will only execute if the password has been successfully entered.
-st.markdown("""
-Welcome to the Coffee Roulette Organizer!
-Upload a CSV file with 'Name' and 'Branch' columns to generate random coffee groups.
-If your CSV contains 'Group_X' columns from previous rounds, the app will try to create new pairings.
-""")
+# The conditional check here is redundant if st.stop() works as expected above,
+# but it provides an extra layer of safety.
+if st.session_state["password_entered"]:
+    st.markdown("""
+    Welcome to the Coffee Roulette Organizer!
+    Upload a CSV file with 'Name' and 'Branch' columns to generate random coffee groups.
+    If your CSV contains 'Group_X' columns from previous rounds, the app will try to create new pairings.
+    """)
 
-uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
+    uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
 
-df = None
-if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file)
-        st.session_state['original_df'] = df.copy() # Store original for reset/re-run
-        st.success("CSV uploaded successfully!")
+    df = None
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+            st.session_state['original_df'] = df.copy() # Store original for reset/re-run
+            st.success("CSV uploaded successfully!")
 
-        # Validate columns
-        if 'Name' not in df.columns or 'Branch' not in df.columns:
-            st.error("Error: CSV must contain 'Name' and 'Branch' columns.")
-            df = None # Invalidate df if columns are missing
-        else:
-            st.subheader("Uploaded Data Preview:")
-            st.dataframe(df.head())
+            # Validate columns
+            if 'Name' not in df.columns or 'Branch' not in df.columns:
+                st.error("Error: CSV must contain 'Name' and 'Branch' columns.")
+                df = None # Invalidate df if columns are missing
+            else:
+                st.subheader("Uploaded Data Preview:")
+                st.dataframe(df.head())
 
-    except Exception as e:
-        st.error(f"Error reading CSV: {e}")
-        df = None
+        except Exception as e:
+            st.error(f"Error reading CSV: {e}")
+            df = None
 
-else:
-    # Option to use mock data if no file is uploaded for demonstration
-    st.info("No file uploaded. Using mock data for demonstration purposes.")
-    mock_data = {
-        'Name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank', 'Grace', 'Heidi', 'Ivan', 'Judy', 'Kelly'],
-        'Branch': ['HR', 'IT', 'Finance', 'HR', 'IT', 'Finance', 'HR', 'IT', 'Finance', 'HR', 'IT'],
-        'Group_1': ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'D', 'D'], # Example past group
-        'Group_2': ['X', 'Y', 'Z', 'X', 'Y', 'Z', 'X', 'Y', 'Z', 'X', 'Y'] # Example past group
-    }
-    df = pd.DataFrame(mock_data)
-    st.session_state['original_df'] = df.copy()
-    st.subheader("Mock Data Preview:")
-    st.dataframe(df.head())
+    else:
+        # Option to use mock data if no file is uploaded for demonstration
+        st.info("No file uploaded. Using mock data for demonstration purposes.")
+        mock_data = {
+            'Name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank', 'Grace', 'Heidi', 'Ivan', 'Judy', 'Kelly'],
+            'Branch': ['HR', 'IT', 'Finance', 'HR', 'IT', 'Finance', 'HR', 'IT', 'Finance', 'HR', 'IT'],
+            'Group_1': ['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'D', 'D'], # Example past group
+            'Group_2': ['X', 'Y', 'Z', 'X', 'Y', 'Z', 'X', 'Y', 'Z', 'X', 'Y'] # Example past group
+        }
+        df = pd.DataFrame(mock_data)
+        st.session_state['original_df'] = df.copy()
+        st.subheader("Mock Data Preview:")
+        st.dataframe(df.head())
 
 
-if df is not None and not df.empty:
-    if st.button("Generate Coffee Groups"):
-        with st.spinner("Generating groups..."):
-            participants_df = df[['Name', 'Branch']].copy() # Use only Name and Branch for current grouping
+    if df is not None and not df.empty:
+        if st.button("Generate Coffee Groups"):
+            with st.spinner("Generating groups..."):
+                participants_df = df[['Name', 'Branch']].copy() # Use only Name and Branch for current grouping
 
-            past_pairings = get_past_pairings(df)
-            new_groups = create_groups_intelligently(participants_df, past_pairings, GROUP_SIZE)
+                past_pairings = get_past_pairings(df)
+                new_groups = create_groups_intelligently(participants_df, past_pairings, GROUP_SIZE)
 
-            # Assign new group IDs to the DataFrame
-            next_group_col = get_next_group_column_name(df)
-            
-            # Create a mapping from participant name to new group ID
-            participant_to_group_id = {}
-            group_id_counter = 1
-            for group in new_groups:
-                for person in group:
-                    participant_to_group_id[person] = f"Group {group_id_counter}"
-                group_id_counter += 1
-            
-            # Initialize new column in the original DataFrame
-            df[next_group_col] = df['Name'].map(participant_to_group_id)
+                # Assign new group IDs to the DataFrame
+                next_group_col = get_next_group_column_name(df)
+                
+                # Create a mapping from participant name to new group ID
+                participant_to_group_id = {}
+                group_id_counter = 1
+                for group in new_groups:
+                    for person in group:
+                        participant_to_group_id[person] = f"Group {group_id_counter}"
+                    group_id_counter += 1
+                
+                # Initialize new column in the original DataFrame
+                df[next_group_col] = df['Name'].map(participant_to_group_id)
 
-            st.session_state['grouped_df'] = df.copy() # Store for download
-            st.success("Groups created successfully!")
+                st.session_state['grouped_df'] = df.copy() # Store for download
+                st.success("Groups created successfully!")
 
-            st.subheader(f"Current Coffee Roulette Groups ({next_group_col}):")
-            
-            # Visual presentation of groups
-            # Using a custom markdown container for visual separation and "bubble" effect
-            unique_new_groups = df[next_group_col].dropna().unique()
-            for group_id in sorted(unique_new_groups):
-                group_members_df = df[df[next_group_col] == group_id]
-                members = group_members_df['Name'].tolist()
-                branches = group_members_df['Branch'].tolist()
+                st.subheader(f"Current Coffee Roulette Groups ({next_group_col}):")
+                
+                # Visual presentation of groups
+                # Using a custom markdown container for visual separation and "bubble" effect
+                unique_new_groups = df[next_group_col].dropna().unique()
+                for group_id in sorted(unique_new_groups):
+                    group_members_df = df[df[next_group_col] == group_id]
+                    members = group_members_df['Name'].tolist()
+                    branches = group_members_df['Branch'].tolist()
 
-                st.markdown(
-                    f"""
-                    <div style="
-                        border: 2px solid #6c5ce7;
-                        border-radius: 15px;
-                        padding: 15px;
-                        margin-bottom: 10px;
-                        background-color: #f0f0ff;
-                        box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
-                    ">
-                        <h4 style="color:#4a418a; margin-top:0px; margin-bottom:10px;">{group_id}</h4>
-                        <ul>
-                    """,
-                    unsafe_allow_html=True
+                    st.markdown(
+                        f"""
+                        <div style="
+                            border: 2px solid #6c5ce7;
+                            border-radius: 15px;
+                            padding: 15px;
+                            margin-bottom: 10px;
+                            background-color: #f0f0ff;
+                            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+                        ">
+                            <h4 style="color:#4a418a; margin-top:0px; margin-bottom:10px;">{group_id}</h4>
+                            <ul>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    for i, member in enumerate(members):
+                        st.markdown(f"<li>👤 **{member}** (Branch: {branches[i]})</li>", unsafe_allow_html=True)
+                    st.markdown("</ul></div>", unsafe_allow_html=True)
+                
+                # Download button
+                csv_output = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="Download Grouped CSV",
+                    data=csv_output,
+                    file_name=f"coffee_roulette_groups_{next_group_col}.csv",
+                    mime="text/csv",
                 )
-                for i, member in enumerate(members):
-                    st.markdown(f"<li>👤 **{member}** (Branch: {branches[i]})</li>", unsafe_allow_html=True)
-                st.markdown("</ul></div>", unsafe_allow_html=True)
-            
-            # Download button
-            csv_output = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Download Grouped CSV",
-                data=csv_output,
-                file_name=f"coffee_roulette_groups_{next_group_col}.csv",
-                mime="text/csv",
-            )
-else:
-    if uploaded_file is None:
-        st.info("Upload a CSV or use the provided mock data to generate groups.")
+    else:
+        if uploaded_file is None:
+            st.info("Upload a CSV or use the provided mock data to generate groups.")
