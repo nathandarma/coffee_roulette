@@ -127,7 +127,7 @@ if not st.session_state["password_entered"]:
     if password_input == PASSWORD:
         st.session_state["password_entered"] = True
         st.success("Access Granted!")
-        st.experimental_rerun() # Rerun to hide password input
+        st.rerun() # Rerun to hide password input
     elif password_input: # Only show error if something was typed
         st.error("Incorrect Password. Please try again.")
     st.stop() # Stop execution until password is correct
