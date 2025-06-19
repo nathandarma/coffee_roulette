@@ -39,13 +39,12 @@ def get_past_pairings(df):
         return past_pairings
 
     for col in group_cols:
-        # Group by the current group column to get members of each historical group
         grouped_data = df.groupby(col)['Name'].apply(list).to_dict()
         for group_id, members in grouped_data.items():
             if len(members) > 1:
                 for i, p1 in enumerate(members):
                     if p1 not in past_pairings:
-                        past_pairings[p1].add(p2)
+                        past_pairings[p1] = set()   # FIXED
                     for j, p2 in enumerate(members):
                         if i != j:
                             past_pairings[p1].add(p2)
@@ -313,6 +312,7 @@ def update_output(contents, filename):
 @app.callback(
     [Output('groups-display-container', 'children'),
      Output('grouped-df-json', 'data'),
+     Output('uploaded-df-json', 'data'),   # NEW: Also update uploaded-df-json!
      Output('download-button', 'className')],
     [Input('generate-groups-button', 'n_clicks')],
     [State('uploaded-df-json', 'data')]
@@ -362,9 +362,9 @@ def generate_groups(n_clicks, uploaded_df_json):
         # Make download button visible
         download_button_class = "bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline w-full transition duration-200 ease-in-out"
 
-        return group_html_components, grouped_df_json, download_button_class
+        return group_html_components, grouped_df_json, grouped_df_json, download_button_class
     
-    return dash.no_update, dash.no_update, "hidden bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline w-full transition duration-200 ease-in-out" # Keep hidden
+    return dash.no_update, dash.no_update, dash.no_update, "hidden bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline w-full transition duration-200 ease-in-out" # Keep hidden
 
 
 # Callback to trigger CSV download
