@@ -99,7 +99,11 @@ def create_groups_intelligently(participants_df, past_pairings, group_size):
 
 # --- Dash Application Setup ---
 
-app = dash.Dash(__name__, external_stylesheets=['https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css']) # Using Tailwind for styling
+app = dash.Dash(
+    __name__,
+    external_stylesheets=['https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css'],
+    requests_pathname_prefix='/'
+)
 
 # Mock Data for initial load
 MOCK_DATA = {
